@@ -1,20 +1,28 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { findUserByEmail, createUser } = require("../models/userModel");
+const pool = require("../config/db");
 
-exports.signup = async (req, res) => {
+exports.register = async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email || !password)
-    return res.status(400).json({ message: "لطفاً تمام فیلدها را پر کنید" });
+    return res.status(400).json({ message: "تمام فیلدها اجباری هستند" });
 
-  const existingUser = await findUserByEmail(email);
-  if (existingUser)
+  const existingUser = await pool.query(
+    "SELECT * FROM users WHERE email = $1",
+    [email]
+  );
+  if (existingUser.rows.length > 0)
     return res.status(400).json({ message: "ایمیل قبلاً ثبت شده است" });
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = await createUser(name, email, hashedPassword);
+  const newUser = await pool.query(
+    "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *",
+    [name, email, hashedPassword, "user"]
+  );
 
-  res.status(201).json({ message: "ثبت‌نام موفقیت‌آمیز بود", user: newUser });
+  res
+    .status(201)
+    .json({ message: "ثبت‌نام موفقیت‌آمیز بود", user: newUser.rows[0] });
 };
 
 exports.login = async (req, res) => {
@@ -22,16 +30,21 @@ exports.login = async (req, res) => {
   if (!email || !password)
     return res.status(400).json({ message: "لطفاً تمام فیلدها را پر کنید" });
 
-  const user = await findUserByEmail(email);
-  if (!user)
-    return res.status(401).json({ message: "کاربری با این ایمیل یافت نشد" });
+  const user = await pool.query("SELECT * FROM users WHERE email = $1", [
+    email,
+  ]);
+  if (user.rows.length === 0)
+    return res.status(401).json({ message: "کاربر یافت نشد" });
 
-  const isMatch = await bcrypt.compare(password, user.password);
+  const isMatch = await bcrypt.compare(password, user.rows[0].password);
   if (!isMatch) return res.status(401).json({ message: "رمز عبور نادرست است" });
 
-  const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
+  const token = jwt.sign(
+    { userId: user.rows[0].id, role: user.rows[0].role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+
   res.cookie("token", token, {
     httpOnly: true,
     secure: false,
@@ -40,7 +53,12 @@ exports.login = async (req, res) => {
 
   res.json({
     message: "ورود موفقیت‌آمیز بود",
-    user: { id: user.id, name: user.name, email: user.email },
+    user: {
+      id: user.rows[0].id,
+      name: user.rows[0].name,
+      email: user.rows[0].email,
+      role: user.rows[0].role,
+    },
   });
 };
 
