@@ -24,7 +24,8 @@ exports.getColorById = async (req, res) => {
 
 exports.createColor = async (req, res) => {
   try {
-    const color = await Color.create(req.body);
+    const { name, code } = req.body; // اصلاح: اضافه کردن code
+    const color = await Color.create({ name, code }); // اصلاح: اضافه کردن code
     res.status(201).json(color);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,7 +34,8 @@ exports.createColor = async (req, res) => {
 
 exports.updateColor = async (req, res) => {
   try {
-    const color = await Color.update(req.params.id, req.body);
+    const { name, code } = req.body; // اصلاح: اضافه کردن code
+    const color = await Color.update(req.params.id, { name, code }); // اصلاح: اضافه کردن code
     res.json(color);
   } catch (error) {
     res.status(400).json({ message: error.message });

@@ -24,7 +24,14 @@ exports.getCommentById = async (req, res) => {
 
 exports.createComment = async (req, res) => {
   try {
-    const comment = await Comment.create(req.body);
+    const { user_id, product_id, rating, text, response } = req.body; // اصلاح: اضافه کردن پارامترها
+    const comment = await Comment.create({
+      user_id,
+      product_id,
+      rating,
+      text,
+      response,
+    }); // اصلاح: اضافه کردن پارامترها
     res.status(201).json(comment);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,10 +40,26 @@ exports.createComment = async (req, res) => {
 
 exports.updateComment = async (req, res) => {
   try {
-    const comment = await Comment.update(req.params.id, req.body);
+    const { user_id, product_id, rating, text, response } = req.body; // اصلاح: اضافه کردن پارامترها
+    const comment = await Comment.update(req.params.id, {
+      user_id,
+      product_id,
+      rating,
+      text,
+      response,
+    }); // اصلاح: اضافه کردن پارامترها
     res.json(comment);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+};
+
+exports.deleteComment = async (req, res) => {
+  try {
+    await Comment.delete(req.params.id);
+    res.json({ message: "Comment deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 

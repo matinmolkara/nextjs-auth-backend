@@ -13,20 +13,20 @@ class City {
     return result.rows[0];
   }
 
-  static async create(category) {
-    const { name, parent_id } = category;
+  static async create(city) {
+    const { name, province_id } = city;
     const result = await pool.query(
-      "INSERT INTO cities (name, parent_id) VALUES ($1, $2) RETURNING *",
-      [name, parent_id]
+      "INSERT INTO cities (name, province_id) VALUES ($1, $2) RETURNING *",
+      [name, province_id]
     );
     return result.rows[0];
   }
 
-  static async update(id, category) {
-    const { name, parent_id } = category;
+  static async update(id, city) {
+    const { name, province_id } = city;
     const result = await pool.query(
-      "UPDATE cities SET name = $1, parent_id = $2 WHERE id = $3 RETURNING *",
-      [name, parent_id, id]
+      "UPDATE cities SET name = $1, province_id = $2 WHERE id = $3 RETURNING *",
+      [name, province_id, id]
     );
     return result.rows[0];
   }

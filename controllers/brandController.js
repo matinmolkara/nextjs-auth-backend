@@ -24,7 +24,8 @@ exports.getBrandById = async (req, res) => {
 
 exports.createBrand = async (req, res) => {
   try {
-    const brand = await Brand.create(req.body);
+    const { name } = req.body; // اصلاح: دریافت name
+    const brand = await Brand.create({ name }); // اصلاح: ارسال name
     res.status(201).json(brand);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,7 +34,8 @@ exports.createBrand = async (req, res) => {
 
 exports.updateBrand = async (req, res) => {
   try {
-    const brand = await Brand.update(req.params.id, req.body);
+    const { name } = req.body; // اصلاح: دریافت name
+    const brand = await Brand.update(req.params.id, { name }); // اصلاح: ارسال name
     res.json(brand);
   } catch (error) {
     res.status(400).json({ message: error.message });

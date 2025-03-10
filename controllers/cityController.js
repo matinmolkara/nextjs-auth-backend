@@ -24,7 +24,8 @@ exports.getCityById = async (req, res) => {
 
 exports.createCity = async (req, res) => {
   try {
-    const city = await City.create(req.body);
+    const { name, province_id } = req.body; // اصلاح: اضافه کردن province_id
+    const city = await City.create({ name, province_id }); // اصلاح: اضافه کردن province_id
     res.status(201).json(city);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,7 +34,8 @@ exports.createCity = async (req, res) => {
 
 exports.updateCity = async (req, res) => {
   try {
-    const city = await City.update(req.params.id, req.body);
+    const { name, province_id } = req.body; // اصلاح: اضافه کردن province_id
+    const city = await City.update(req.params.id, { name, province_id }); // اصلاح: اضافه کردن province_id
     res.json(city);
   } catch (error) {
     res.status(400).json({ message: error.message });

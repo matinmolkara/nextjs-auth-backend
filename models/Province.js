@@ -6,6 +6,7 @@ class Province {
     const result = await pool.query("SELECT * FROM provinces");
     return result.rows;
   }
+
   static async getById(id) {
     const result = await pool.query("SELECT * FROM provinces WHERE id = $1", [
       id,
@@ -13,20 +14,20 @@ class Province {
     return result.rows[0];
   }
 
-  static async create(category) {
-    const { name, parent_id } = category;
+  static async create(province) {
+    const { name } = province;
     const result = await pool.query(
-      "INSERT INTO provinces (name, parent_id) VALUES ($1, $2) RETURNING *",
-      [name, parent_id]
+      "INSERT INTO provinces (name) VALUES ($1) RETURNING *",
+      [name]
     );
     return result.rows[0];
   }
 
-  static async update(id, category) {
-    const { name, parent_id } = category;
+  static async update(id, province) {
+    const { name } = province;
     const result = await pool.query(
-      "UPDATE provinces SET name = $1, parent_id = $2 WHERE id = $3 RETURNING *",
-      [name, parent_id, id]
+      "UPDATE provinces SET name = $1 WHERE id = $2 RETURNING *",
+      [name, id]
     );
     return result.rows[0];
   }

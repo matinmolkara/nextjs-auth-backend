@@ -24,7 +24,28 @@ exports.getProductById = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body);
+    const {
+      title,
+      description,
+      price,
+      real_price,
+      discount,
+      image_url,
+      category_id,
+      brand_id,
+      special_offer,
+    } = req.body;
+    const product = await Product.create({
+      title,
+      description,
+      price,
+      real_price,
+      discount,
+      image_url,
+      category_id,
+      brand_id,
+      special_offer,
+    });
     res.status(201).json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,7 +54,28 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
-    const product = await Product.update(req.params.id, req.body);
+    const {
+      title,
+      description,
+      price,
+      real_price,
+      discount,
+      image_url,
+      category_id,
+      brand_id,
+      special_offer,
+    } = req.body;
+    const product = await Product.update(req.params.id, {
+      title,
+      description,
+      price,
+      real_price,
+      discount,
+      image_url,
+      category_id,
+      brand_id,
+      special_offer,
+    });
     res.json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });

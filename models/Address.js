@@ -13,20 +13,57 @@ class Address {
     return result.rows[0];
   }
 
-  static async create(category) {
-    const { name, parent_id } = category;
+  static async create(address) {
+    const {
+      user_id,
+      province_id,
+      city_id,
+      full_address,
+      building_num,
+      unit_num,
+      zip_code,
+      tel,
+    } = address;
     const result = await pool.query(
-      "INSERT INTO addresses (name, parent_id) VALUES ($1, $2) RETURNING *",
-      [name, parent_id]
+      "INSERT INTO addresses (user_id, province_id, city_id, full_address, building_num, unit_num, zip_code, tel) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+      [
+        user_id,
+        province_id,
+        city_id,
+        full_address,
+        building_num,
+        unit_num,
+        zip_code,
+        tel,
+      ]
     );
     return result.rows[0];
   }
 
-  static async update(id, category) {
-    const { name, parent_id } = category;
+  static async update(id, address) {
+    const {
+      user_id,
+      province_id,
+      city_id,
+      full_address,
+      building_num,
+      unit_num,
+      zip_code,
+      tel,
+    } = address;
     const result = await pool.query(
-      "UPDATE addresses SET name = $1, parent_id = $2 WHERE id = $3 RETURNING *",
-      [name, parent_id, id]
+      "UPDATE addresses SET user_id = $1, province_id = $2, city_id = $3, full_address = $4, building_num = $5, unit_num = $6, zip_code = $7, tel = $8 WHERE id = $9 RETURNING *",
+      [
+        user_id,
+        province_id,
+        city_id,
+        full_address,
+        building_num,
+        unit_num,
+        zip_code,
+        tel,
+        id,
+      ]
     );
     return result.rows[0];
   }

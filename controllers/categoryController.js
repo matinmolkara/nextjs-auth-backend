@@ -24,7 +24,8 @@ exports.getCategoryById = async (req, res) => {
 
 exports.createCategory = async (req, res) => {
   try {
-    const category = await Category.create(req.body);
+    const { name, parent_id } = req.body; // اصلاح: دریافت name و parent_id
+    const category = await Category.create({ name, parent_id }); // اصلاح: ارسال name و parent_id
     res.status(201).json(category);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,7 +34,8 @@ exports.createCategory = async (req, res) => {
 
 exports.updateCategory = async (req, res) => {
   try {
-    const category = await Category.update(req.params.id, req.body);
+    const { name, parent_id } = req.body; // اصلاح: دریافت name و parent_id
+    const category = await Category.update(req.params.id, { name, parent_id }); // اصلاح: ارسال name و parent_id
     res.json(category);
   } catch (error) {
     res.status(400).json({ message: error.message });

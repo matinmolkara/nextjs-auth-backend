@@ -6,25 +6,28 @@ class Comment {
     const result = await pool.query("SELECT * FROM comments");
     return result.rows;
   }
+
   static async getById(id) {
-    const result = await pool.query("SELECT * FROM comments WHERE id = $1", [id]);
+    const result = await pool.query("SELECT * FROM comments WHERE id = $1", [
+      id,
+    ]);
     return result.rows[0];
   }
 
-  static async create(category) {
-    const { name, parent_id } = category;
+  static async create(comment) {
+    const { user_id, product_id, rating, text, response } = comment;
     const result = await pool.query(
-      "INSERT INTO comments (name, parent_id) VALUES ($1, $2) RETURNING *",
-      [name, parent_id]
+      "INSERT INTO comments (user_id, product_id, rating, text, response) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [user_id, product_id, rating, text, response]
     );
     return result.rows[0];
   }
 
-  static async update(id, category) {
-    const { name, parent_id } = category;
+  static async update(id, comment) {
+    const { user_id, product_id, rating, text, response } = comment;
     const result = await pool.query(
-      "UPDATE comments SET name = $1, parent_id = $2 WHERE id = $3 RETURNING *",
-      [name, parent_id, id]
+      "UPDATE comments SET user_id = $1, product_id = $2, rating = $3, text = $4, response = $5 WHERE id = $6 RETURNING *",
+      [user_id, product_id, rating, text, response, id]
     );
     return result.rows[0];
   }

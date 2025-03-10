@@ -1,7 +1,7 @@
 // controllers/addressController.js
 const Address = require("../models/Address");
 
-exports.getAllAddresss = async (req, res) => {
+exports.getAllAddresses = async (req, res) => {
   try {
     const addresses = await Address.getAll();
     res.json(addresses);
@@ -24,7 +24,26 @@ exports.getAddressById = async (req, res) => {
 
 exports.createAddress = async (req, res) => {
   try {
-    const address = await Address.create(req.body);
+    const {
+      user_id,
+      province_id,
+      city_id,
+      full_address,
+      building_num,
+      unit_num,
+      zip_code,
+      tel,
+    } = req.body;
+    const address = await Address.create({
+      user_id,
+      province_id,
+      city_id,
+      full_address,
+      building_num,
+      unit_num,
+      zip_code,
+      tel,
+    });
     res.status(201).json(address);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,7 +52,26 @@ exports.createAddress = async (req, res) => {
 
 exports.updateAddress = async (req, res) => {
   try {
-    const address = await Address.update(req.params.id, req.body);
+    const {
+      user_id,
+      province_id,
+      city_id,
+      full_address,
+      building_num,
+      unit_num,
+      zip_code,
+      tel,
+    } = req.body;
+    const address = await Address.update(req.params.id, {
+      user_id,
+      province_id,
+      city_id,
+      full_address,
+      building_num,
+      unit_num,
+      zip_code,
+      tel,
+    });
     res.json(address);
   } catch (error) {
     res.status(400).json({ message: error.message });

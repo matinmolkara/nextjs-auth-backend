@@ -24,7 +24,8 @@ exports.getProvinceById = async (req, res) => {
 
 exports.createProvince = async (req, res) => {
   try {
-    const province = await Province.create(req.body);
+    const { name } = req.body; // اصلاح: دریافت name
+    const province = await Province.create({ name }); // اصلاح: ارسال name
     res.status(201).json(province);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -33,7 +34,8 @@ exports.createProvince = async (req, res) => {
 
 exports.updateProvince = async (req, res) => {
   try {
-    const province = await Province.update(req.params.id, req.body);
+    const { name } = req.body; // اصلاح: دریافت name
+    const province = await Province.update(req.params.id, { name }); // اصلاح: ارسال name
     res.json(province);
   } catch (error) {
     res.status(400).json({ message: error.message });

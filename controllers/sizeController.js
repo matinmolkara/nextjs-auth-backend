@@ -24,8 +24,9 @@ exports.getSizeById = async (req, res) => {
 
 exports.createSize = async (req, res) => {
   try {
-    const size = await Size.create(req.body);
-    res.status(201).json(size);
+    const { size, type } = req.body; // اصلاح: دریافت size و type
+    const newSize = await Size.create({ size, type }); // اصلاح: ارسال size و type
+    res.status(201).json(newSize);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -33,8 +34,9 @@ exports.createSize = async (req, res) => {
 
 exports.updateSize = async (req, res) => {
   try {
-    const size = await Size.update(req.params.id, req.body);
-    res.json(size);
+    const { size, type } = req.body; // اصلاح: دریافت size و type
+    const updatedSize = await Size.update(req.params.id, { size, type }); // اصلاح: ارسال size و type
+    res.json(updatedSize);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
