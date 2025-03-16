@@ -35,6 +35,27 @@ class Category {
   static async delete(id) {
     await pool.query("DELETE FROM categories WHERE id = $1", [id]);
   }
+  // اضافه کردن تابع getChildCategories
+  static async getChildCategories(parentId) {
+    const result = await pool.query(
+      "SELECT * FROM categories WHERE parent_id = $1",
+      [parentId]
+    );
+    return result.rows;
+  }
+
+  // اضافه کردن تابع getAllWithChildren (اختیاری)
+  static async getAllWithChildren() {
+    const categories = await Category.getAll();
+    const categoriesWithChildren = [];
+
+    for (const category of categories) {
+      const children = await Category.getChildCategories(category.id);
+      categoriesWithChildren.push({ ...category, children });
+    }
+
+    return categoriesWithChildren;
+  }
 }
 
 module.exports = Category;

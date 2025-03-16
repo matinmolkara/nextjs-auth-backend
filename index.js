@@ -1,4 +1,5 @@
 const express = require("express");
+const multer = require("multer");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
@@ -21,6 +22,7 @@ const commentRoutes = require("./routes/commentRoutes");
 
 const app = express();
 
+ // برای دسترسی به تصاویر آپلود شده
 app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -39,5 +41,19 @@ app.use("/api/productsizes", productSizeRoutes);
 app.use("/api/productcolors", productColorRoutes);
 app.use("/api/productcategories", productCategoryRoutes);
 
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+const upload = multer({ storage: storage });
+app.use("/uploads", express.static("uploads"));
+
 const PORT = process.env.PORT || 5000;
+console.log("Upload object before export:", upload);
+module.exports = { upload };
 app.listen(PORT, () => console.log(`🚀 server is runnig on port ${PORT}`));

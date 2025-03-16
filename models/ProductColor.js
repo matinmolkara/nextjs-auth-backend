@@ -17,6 +17,21 @@ class ProductColor {
       [product_id, color_id]
     );
   }
+  static async getProductColors(product_id) {
+    const result = await pool.query(
+      `SELECT colors.* FROM colors INNER JOIN product_colors ON colors.id = product_colors.color_id WHERE product_colors.product_id = $1`,
+      [product_id]
+    );
+    return result.rows;
+  }
+
+
+
+  static async deleteProductColors(product_id) {
+    await pool.query("DELETE FROM product_colors WHERE product_id = $1", [
+      product_id,
+    ]);
+  }
 }
 
 module.exports = ProductColor;

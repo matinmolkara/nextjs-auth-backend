@@ -1,12 +1,12 @@
-// routes/productRoutes.js
+// routes/sizeRoutes.js
 const express = require("express");
 const router = express.Router();
-const productController = require("../controllers/productController");
+const sizeController = require("../controllers/sizeController");
 
-router.get("/", productController.getAllProducts);
-router.get("/:id", productController.getProductById);
-router.post("/", productController.createProduct);
-router.put("/:id", productController.updateProduct);
-router.delete("/:id", productController.deleteProduct);
+router.get("/", sizeController.getAllSizes);
+router.get("/:id", sizeController.getSizeById);
+router.post("/", sizeController.createSize);
+router.put("/:id", sizeController.updateSize);
+router.delete("/:id", sizeController.deleteSize);
 
 module.exports = router;
