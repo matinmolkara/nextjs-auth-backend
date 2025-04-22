@@ -3,7 +3,7 @@ const pool = require("../config/db");
 
 class Province {
   static async getAll() {
-    const result = await pool.query("SELECT * FROM provinces");
+    const result = await pool.query("SELECT * FROM provinces ORDER BY name");
     return result.rows;
   }
 

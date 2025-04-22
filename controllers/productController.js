@@ -4,10 +4,30 @@ const ProductColor = require("../models/ProductColor");
 const ProductSize = require("../models/ProductSize");
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.getAll();
+    // 1. بررسی وجود پارامتر categoryId در req.query
+    const categoryId = req.query.categoryId;
+    let products;
+
+    if (categoryId) {
+      // 2. اگر categoryId وجود دارد، تابعی در مدل را فراخوانی کن که فیلتر کند
+      // نکته مهم: شما باید تابع Product.getByCategoryId(categoryId) را
+      // در فایل models/Product.js پیاده‌سازی کنید!
+      console.log(`Backend: Filtering products by categoryId: ${categoryId}`); // لاگ برای عیب یابی در سمت سرور
+      products = await Product.getByCategoryId(categoryId);
+    } else {
+      // 3. اگر categoryId وجود ندارد، همه محصولات را برگردان
+      console.log("Backend: Fetching all products."); // لاگ برای عیب یابی در سمت سرور
+      products = await Product.getAll();
+    }
+
     res.json(products);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    // لاگ خطای سمت سرور برای عیب یابی بهتر
+    console.error("Backend Error fetching products:", error);
+    // ارسال پیام خطای مشخص‌تر به فرانت‌اند
+    res
+      .status(500)
+      .json({ message: "Failed to fetch products", error: error.message });
   }
 };
 

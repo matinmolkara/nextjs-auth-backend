@@ -17,8 +17,8 @@ const productCategoryRoutes = require("./routes/productCategoryRoutes");
 const productColorRoutes = require("./routes/productColorRoutes");
 const productSizeRoutes = require("./routes/productSizeRoutes");
 const commentRoutes = require("./routes/commentRoutes");
-
-
+const cartRoutes = require("./routes/cartRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
 
@@ -27,6 +27,9 @@ app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 app.use("/api/auth", authRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/cart", cartRoutes);
+
 app.use("/api/products", productRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/categories", categoryRoutes);

@@ -14,6 +14,15 @@ class Product {
     return result.rows[0];
   }
 
+  static async getByCategoryId(categoryId) {
+    // پیاده‌سازی کوئری بر اساس ساختار دیتابیس شما (یک به چند یا چند به چند)
+    // مثال برای رابطه یک به چند (ستون category_id در جدول products):
+    const query = "SELECT * FROM products WHERE category_id = $1";
+    const values = [categoryId];
+    const result = await pool.query(query, values); // استفاده از pool.query
+    return result.rows;
+  }
+
   static async create(product) {
     const {
       title,
@@ -25,6 +34,8 @@ class Product {
       category_id,
       brand_id,
       special_offer,
+      has_color,
+      has_size,
     } = product;
     const result = await pool.query(
       "INSERT INTO products (title, description, price, real_price, discount, image_urls, category_id, brand_id, special_offer) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
@@ -38,6 +49,8 @@ class Product {
         category_id,
         brand_id,
         special_offer,
+        has_color,
+        has_size,
       ]
     );
     return result.rows[0];
@@ -54,6 +67,8 @@ class Product {
       category_id,
       brand_id,
       special_offer,
+      has_color,
+      has_size,
     } = product;
     const result = await pool.query(
       "UPDATE products SET title = $1, description = $2, price = $3, real_price = $4, discount = $5, image_urls = $6, category_id = $7, brand_id = $8, special_offer = $9 WHERE id = $10 RETURNING *",
@@ -67,6 +82,8 @@ class Product {
         category_id,
         brand_id,
         special_offer,
+        has_color,
+        has_size,
         id,
       ]
     );
