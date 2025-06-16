@@ -10,5 +10,5 @@ router.post("/add", cartController.addToCart);
 router.post("/update", cartController.updateQuantity);
 router.post("/remove", cartController.removeFromCart);
 router.post("/clear", cartController.clearCart);
-
+router.post("/merge", authMiddleware, cartController.mergeGuestCartWithUser);
 module.exports = router;

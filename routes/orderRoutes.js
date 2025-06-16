@@ -15,4 +15,20 @@ router.put(
   isAdmin, // اعمال middleware isAdmin
   orderController.updateOrderStatus
 );
+
+
+router.get(
+  "/admin/orders",
+  isAdmin, // فقط مدیر اجازه داره
+  orderController.getFilteredOrders
+);
+
+// حذف سفارش - فقط مدیر
+router.delete(
+  "/:orderId",
+  isAdmin, // فقط ادمین مجازه
+  orderController.deleteOrder
+);
+
+
 module.exports = router;

@@ -56,6 +56,75 @@ class Category {
 
     return categoriesWithChildren;
   }
+
+  static async getChildCategories(parentId) {
+    const result = await pool.query(
+      "SELECT * FROM categories WHERE parent_id = $1",
+      [parentId]
+    );
+    return result.rows;
+  }
+
+  // --- NEW STATIC METHOD FOR FILTERING AND PAGINATION ---
+  static async getFilteredAndPaginated({
+    search,
+    level1_id,
+    level2_id,
+    level3_id,
+    limit,
+    offset,
+  }) {
+    let query = "SELECT * FROM categories WHERE 1=1";
+    let countQuery = "SELECT COUNT(*) FROM categories WHERE 1=1";
+    const params = [];
+    let paramIndex = 1;
+
+    // Apply search filter
+    if (search) {
+      query += ` AND name ILIKE $${paramIndex}`;
+      countQuery += ` AND name ILIKE $${paramIndex}`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    // Apply level filters (by parent_id)
+    if (level3_id !== undefined) {
+      // If level 3 is filtered, filter by its parent_id
+      query += ` AND parent_id = $${paramIndex}`;
+      countQuery += ` AND parent_id = $${paramIndex}`;
+      params.push(level3_id);
+      paramIndex++;
+    } else if (level2_id !== undefined) {
+      // If level 2 is filtered, filter by its parent_id
+      query += ` AND parent_id = $${paramIndex}`;
+      countQuery += ` AND parent_id = $${paramIndex}`;
+      params.push(level2_id);
+      paramIndex++;
+    } else if (level1_id !== undefined) {
+      // If level 1 is filtered, filter by its parent_id
+      // This will show level 2 categories whose parent is level1_id
+      query += ` AND parent_id = $${paramIndex}`;
+      countQuery += ` AND parent_id = $${paramIndex}`;
+      params.push(level1_id);
+      paramIndex++;
+    }
+
+    query += ` ORDER BY name ASC LIMIT $${paramIndex} OFFSET $${
+      paramIndex + 1
+    }`;
+    params.push(limit, offset);
+
+    const categoriesResult = await pool.query(query, params);
+    const countResult = await pool.query(
+      countQuery,
+      params.slice(0, params.length - 2)
+    ); // Exclude limit/offset for count
+
+    return {
+      categories: categoriesResult.rows,
+      totalCount: parseInt(countResult.rows[0].count),
+    };
+  }
 }
 
 module.exports = Category;

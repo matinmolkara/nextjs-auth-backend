@@ -32,7 +32,14 @@ class OrderItem {
   static async findByOrderId(orderId) {
     try {
       const result = await pool.query(
-        "SELECT * FROM order_items WHERE order_id = $1",
+        `
+        SELECT 
+          oi.*,
+          p.title AS product_name
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = $1
+        `,
         [orderId]
       );
       return result.rows;

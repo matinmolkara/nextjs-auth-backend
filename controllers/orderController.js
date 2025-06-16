@@ -1,8 +1,11 @@
 const Order = require("../models/Order");
 const Cart = require("../models/Cart"); // برای دریافت سبد خرید (اگر نیاز باشد)
 const CartItem = require("../models/CartItem"); // برای دریافت آیتم‌های سبد خرید (اگر نیاز باشد)
+const OrderItem = require("../models/OrderItem");
+
 
 exports.createOrder = async (req, res) => {
+
   try {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ success: false, error: "Unauthorized" });
@@ -18,21 +21,60 @@ exports.createOrder = async (req, res) => {
       notes,
     } = req.body;
 
-    // در اینجا شما باید منطق محاسبه مبلغ کل سفارش را از سبد خرید پیاده‌سازی کنید.
-    // این ممکن است شامل خواندن آیتم‌های سبد خرید و جمع کردن قیمت‌ها باشد.
-    // به عنوان یک مثال ساده، فرض می‌کنیم totalAmount از فرانت‌اند ارسال می‌شود.
+    if (!cartId || !paymentMethod) {
+      
+      return res.status(400).json({
+        success: false,
+        error: "شناسه سبد خرید و روش پرداخت الزامی است.",
+      });
+    }
+
     const cartItems = await Cart.getItems(cartId);
+    if (!cartItems || cartItems.length === 0) {
+      
+      return res
+        .status(400)
+        .json({ success: false, error: "سبد خرید خالی است." });
+    }
+
     let totalAmount = 0;
     cartItems.forEach((item) => {
-      totalAmount += item.quantity * parseFloat(item.unit_price); // مطمئن شوید که unit_price به درستی ذخیره شده است
+      const unitPrice = parseFloat(item.unit_price);
+      const quantity = parseInt(item.quantity);
+      if (!isNaN(unitPrice) && !isNaN(quantity)) {
+        totalAmount += quantity * unitPrice;
+      }
     });
-    totalAmount += parseFloat(shippingCost || 0); // اضافه کردن هزینه ارسال
+    totalAmount += parseFloat(shippingCost || 0);
 
-    // وضعیت اولیه سفارش پس از ثبت (قبل از پرداخت آنلاین یا ثبت پرداخت در محل)
     const initialOrderStatus =
       paymentMethod === "پرداخت در محل" ? "در دست بررسی" : "در انتظار پرداخت";
     const initialPaymentStatus =
       paymentMethod === "پرداخت در محل" ? "در انتظار پرداخت" : "پرداخت نشده";
+
+
+
+    // const existingOrderCheck = await client.query(
+    //   "SELECT 1 FROM orders WHERE cart_id = $1 LIMIT 1",
+    //   [cartId]
+    // );
+
+    // if (existingOrderCheck.rows.length > 0) {
+    //   await client.query("ROLLBACK"); // لغو تراکنش
+    //   // client.release(); // در finally آزاد می‌شود
+    //   return res.status(400).json({
+    //     success: false,
+    //     error: "سفارش برای این سبد خرید قبلاً ثبت شده است.",
+    //   });
+    // }
+
+    // const existingOrder = await Order.findByCartId(cartId);
+    // if (existingOrder) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     error: "سفارش برای این سبد خرید قبلاً ثبت شده است.",
+    //   });
+    // }
 
     const order = await Order.create(
       userId,
@@ -44,19 +86,34 @@ exports.createOrder = async (req, res) => {
       billingAddress,
       shippingMethod,
       shippingCost,
-      notes
+      notes,
+      initialOrderStatus
     );
-
+    if (!order || !order.order_id) {
+      return res
+        .status(500)
+        .json({ success: false, error: "خطا در ایجاد سفارش." });
+    }
+    for (const item of cartItems) {
+      const unitPrice = parseFloat(item.unit_price);
+      const quantity = parseInt(item.quantity);
+      const totalPrice = unitPrice * quantity;
+      await OrderItem.create(
+        order.order_id,
+        item.product_id,
+        quantity,
+        unitPrice,
+        totalPrice
+      );
+    }
     // پس از ایجاد سفارش موفقیت‌آمیز، می‌توانید سبد خرید را خالی کنید
     await Cart.clear(cartId);
 
-    res
-      .status(201)
-      .json({
-        success: true,
-        data: order,
-        message: "Order created successfully",
-      });
+    res.status(201).json({
+      success: true,
+      data: order,
+      message: "Order created successfully",
+    });
   } catch (error) {
     console.error("Error creating order:", error);
     res.status(500).json({ success: false, error: "Internal server error" });
@@ -84,7 +141,16 @@ exports.getOrderById = async (req, res) => {
     if (!order) {
       return res.status(404).json({ success: false, error: "Order not found" });
     }
-    res.json({ success: true, data: order });
+    // const cartItems = await Cart.getItems(order.cart_id);
+    const orderItems = await OrderItem.findByOrderId(orderId);
+    res.json({
+      success: true,
+      data: {
+        ...order,
+        // items: cartItems,
+        items: orderItems,
+      },
+    });
   } catch (error) {
     console.error("Error fetching order by ID:", error);
     res.status(500).json({ success: false, error: "Internal server error" });
@@ -94,15 +160,13 @@ exports.getOrderById = async (req, res) => {
 // مثال برای به‌روزرسانی وضعیت سفارش (فقط برای مدیر)
 exports.updateOrderStatus = async (req, res) => {
   try {
-    // شما باید منطق احراز هویت مدیر را در اینجا پیاده‌سازی کنید
-    // برای مثال، بررسی کنید که آیا req.user نقش مدیر دارد یا خیر
-    // if (!req.user || req.user.role !== 'admin') {
-    //   return res.status(403).json({ success: false, error: "Forbidden" });
-    // }
-
     const orderId = req.params.orderId;
-    const { orderStatus } = req.body;
-    const updatedOrder = await Order.updateStatus(orderId, orderStatus);
+    const { orderStatus, paymentStatus, notes } = req.body;
+    const updatedOrder = await Order.updateStatus(orderId, {
+      order_status: orderStatus,
+      payment_status: paymentStatus,
+      notes,
+    });
     if (!updatedOrder) {
       return res.status(404).json({ success: false, error: "Order not found" });
     }
@@ -116,5 +180,48 @@ exports.updateOrderStatus = async (req, res) => {
     res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
+// برای لیست کامل سفارش‌ها با فیلتر و pagination
+exports.getFilteredOrders = async (req, res) => {
+  try {
+    const rawPage = parseInt(req.query.page);
+    const rawPageSize = parseInt(req.query.pageSize);
 
-// می‌توانید کنترلرهای دیگری برای لغو سفارش، به‌روزرسانی اطلاعات پرداخت، و غیره اضافه کنید.
+    const page = !isNaN(rawPage) && rawPage > 0 ? rawPage : 1;
+    const pageSize = !isNaN(rawPageSize) && rawPageSize > 0 ? rawPageSize : 10;
+
+    const offset = (page - 1) * pageSize;
+    const limit = pageSize;
+
+    const result = await Order.getFilteredOrders({
+      search: req.query.search,
+      paymentStatus: req.query.paymentStatus,
+      dateFilter: req.query.date,
+      limit,
+      offset,
+    });
+
+    res.json({ success: true, orders: result });
+  } catch (error) {
+    console.error("🔥 خطای getFilteredOrders:", error);
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+};
+
+
+// controllers/orderController.js
+
+exports.deleteOrder = async (req, res) => {
+  try {
+    const orderId = req.params.orderId;
+
+    const deleted = await Order.delete(orderId);
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: "سفارش پیدا نشد" });
+    }
+
+    res.json({ success: true, message: "سفارش با موفقیت حذف شد" });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    res.status(500).json({ success: false, error: "خطای سرور" });
+  }
+};

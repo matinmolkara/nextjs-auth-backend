@@ -6,7 +6,13 @@ class Brand {
     const result = await pool.query("SELECT * FROM brands");
     return result.rows;
   }
-
+  static async countAll(search = "") {
+    const result = await pool.query(
+      "SELECT COUNT(*) FROM brands WHERE name ILIKE $1",
+      [`%${search}%`]
+    );
+    return parseInt(result.rows[0].count, 10);
+  }
   static async getById(id) {
     const result = await pool.query("SELECT * FROM brands WHERE id = $1", [id]);
     return result.rows[0];

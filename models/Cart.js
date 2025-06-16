@@ -1,30 +1,36 @@
+const { v4: uuidv4 } = require("uuid"); // برای تولید UUID
 const pool = require("../config/db");
 
 class Cart {
+  // پیدا کردن یا ایجاد سبد خرید برای کاربر ثبت‌نام‌شده
   static async findOrCreateByUserId(userId) {
     const result = await pool.query("SELECT * FROM carts WHERE user_id = $1", [
       userId,
     ]);
     if (result.rows.length > 0) return result.rows[0];
 
+    const uniqueId = uuidv4(); // تولید UUID
     const insert = await pool.query(
-      "INSERT INTO carts (user_id) VALUES ($1) RETURNING *",
-      [userId]
+      "INSERT INTO carts (user_id, unique_id) VALUES ($1, $2) RETURNING *",
+      [userId, uniqueId]
     );
     return insert.rows[0];
   }
 
+  // ایجاد سبد خرید برای کاربر مهمان
   static async createGuestCart() {
+    const uniqueId = uuidv4(); // تولید UUID
     const insert = await pool.query(
-      "INSERT INTO carts (user_id) VALUES (NULL) RETURNING *", // user_id می‌تواند null باشد برای سبد مهمان
-      []
+      "INSERT INTO carts (user_id, unique_id) VALUES (NULL, $1) RETURNING *",
+      [uniqueId]
     );
     return insert.rows[0];
   }
 
+  // دریافت تمام آیتم‌های موجود در سبد خرید
   static async getItems(cartId) {
     const result = await pool.query(
-      `SELECT ci.*, p.title, p.image_urls
+      `SELECT ci.*, ci.price AS unit_price, p.title, p.image_urls
             FROM cart_items ci
             JOIN products p ON ci.product_id = p.id
             WHERE ci.cart_id = $1`,
@@ -33,11 +39,21 @@ class Cart {
     return result.rows;
   }
 
+  // پاک کردن تمام آیتم‌های موجود در سبد خرید
   static async clear(cartId) {
     await pool.query("DELETE FROM cart_items WHERE cart_id = $1", [cartId]);
   }
 
-  // متد جدید برای ادغام سبد مهمان با سبد کاربری بعد از ورود
+  // پیدا کردن سبد خرید بر اساس UUID
+  static async findByUniqueId(uniqueId) {
+    const result = await pool.query(
+      "SELECT * FROM carts WHERE unique_id = $1",
+      [uniqueId]
+    );
+    return result.rows.length > 0 ? result.rows[0] : null;
+  }
+
+  // ادغام سبد خرید مهمان با سبد خرید کاربری
   static async mergeGuestCartWithUserCart(guestCartId, userId) {
     const guestItems = await pool.query(
       "SELECT * FROM cart_items WHERE cart_id = $1",
@@ -47,7 +63,6 @@ class Cart {
     const userCart = await this.findOrCreateByUserId(userId);
 
     for (const guestItem of guestItems.rows) {
-      // بررسی وجود آیتم در سبد کاربر و ادغام یا اضافه کردن
       const existingItem = await pool.query(
         `SELECT * FROM cart_items
                 WHERE cart_id = $1
@@ -62,10 +77,7 @@ class Cart {
           `UPDATE cart_items
                     SET quantity = quantity + $1
                     WHERE id = $2`,
-          [
-            existingItem.rows[0].quantity + guestItem.quantity,
-            existingItem.rows[0].id,
-          ]
+          [guestItem.quantity, existingItem.rows[0].id]
         );
       } else {
         await pool.query(
@@ -83,7 +95,7 @@ class Cart {
       }
     }
 
-    // حذف سبد مهمان بعد از ادغام
+    // حذف سبد مهمان پس از ادغام
     await pool.query("DELETE FROM carts WHERE id = $1", [guestCartId]);
     await pool.query("DELETE FROM cart_items WHERE cart_id = $1", [
       guestCartId,

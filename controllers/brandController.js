@@ -1,12 +1,18 @@
 // controllers/brandController.js
 const Brand = require("../models/Brand");
-
+const Product = require("../models/Product");
 exports.getAllBrands = async (req, res) => {
   try {
-    const brands = await Brand.getAll();
-    res.json(brands);
+    const { search = "", page = 1, pageSize = 15 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(pageSize);
+
+    const brands = await Brand.getAll(search, skip, pageSize);
+    const totalCount = await Brand.countAll(search);
+
+    res.json({ brands, totalCount });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("خطا در دریافت برندها:", error);
+    res.status(500).json({ message: "خطا در دریافت برندها" });
   }
 };
 
@@ -44,9 +50,18 @@ exports.updateBrand = async (req, res) => {
 
 exports.deleteBrand = async (req, res) => {
   try {
-    await Brand.delete(req.params.id);
-    res.json({ message: "Brand deleted" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    const brandId = req.params.id;
+    const products = await Product.getByBrandId(brandId);
+    if (products.length > 0) {
+      return res
+        .status(400)
+        .json({ message: "این برند دارای محصول است و قابل حذف نیست." });
+    }
+
+    await Brand.delete(brandId);
+    res.json({ message: "برند حذف شد" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
+

@@ -3,9 +3,47 @@ const Category = require("../models/Category");
 
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.getAll();
-    res.json(categories);
+    const {
+      search,
+      level1_id,
+      level2_id,
+      level3_id,
+      page = 1, 
+      pageSize = 15, 
+      all, 
+    } = req.query;
+
+    let categories;
+    let totalCount;
+
+    if (all === "true") {
+      
+      categories = await Category.getAll();
+      totalCount = categories.length; 
+    } else {
+      
+      const offset = (parseInt(page) - 1) * parseInt(pageSize);
+
+      const filterOptions = {
+        search,
+        level1_id: level1_id ? parseInt(level1_id) : undefined,
+        level2_id: level2_id ? parseInt(level2_id) : undefined,
+        level3_id: level3_id ? parseInt(level3_id) : undefined,
+      };
+
+      const result = await Category.getFilteredAndPaginated({
+        ...filterOptions,
+        limit: parseInt(pageSize),
+        offset,
+      });
+
+      categories = result.categories;
+      totalCount = result.totalCount;
+    }
+
+    res.json({ categories, totalCount });
   } catch (error) {
+    console.error("Error in getAllCategories:", error);
     res.status(500).json({ message: error.message });
   }
 };

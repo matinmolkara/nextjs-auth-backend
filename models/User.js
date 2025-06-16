@@ -100,6 +100,7 @@ class User {
       "avatar_url",
       "date_of_birth",
       "gender",
+      "is_active",
     ];
     const insertValues = [
       name,
@@ -112,6 +113,7 @@ class User {
       avatar_url || null,
       date_of_birth || null,
       gender || null,
+      user.is_active !== undefined ? user.is_active : true,
     ];
 
     // ساخت بخش value string برای کوئری ($1, $2, ...)
@@ -149,14 +151,12 @@ class User {
       "avatar_url",
       "date_of_birth",
       "gender",
-      "is_active", // is_active ممکن است توسط ادمین تغییر کند
-      // last_login_at, email_verified_at, phone_verified_at, reset_password_token, reset_password_expires
-      // این فیلدها معمولا توسط فرآیندهای سیستمی به‌روز می شوند نه از طریق فرم عادی کاربر
+      "is_active",
+      "is_verified",
     ];
 
-    // اضافه کردن فیلدهای دیگر به کوئری اگر در updateData وجود داشته باشند
     for (const field of allowedUpdateFields) {
-      // چک می کنیم که فیلد در updateData وجود داشته باشد (حتی اگر مقدارش null باشد برای پاک کردن فیلد)
+ 
       if (updateData.hasOwnProperty(field)) {
         updates.push(`${field} = $${paramIndex++}`);
         values.push(fieldsToUpdate[field]); // استفاده از مقدار از fieldsToUpdate
@@ -190,18 +190,17 @@ class User {
     )}`; // شرط WHERE و بازگرداندن فیلدهای غیرحساس
     values.push(id); // اضافه کردن ID کاربر به انتهای مقادیر
 
-    console.log("Update Query:", query); // برای اشکال زدایی
-    console.log("Update Values:", values); // برای اشکال زدایی
+  
 
     const result = await pool.query(query, values);
-    return result.rows[0]; // برمی گرداندن کاربر به‌روز شده (فیلدهای عمومی)
+    return result.rows[0]; 
   }
 
   static async delete(id) {
     await pool.query("DELETE FROM users WHERE id = $1", [id]);
   }
 
-  // توابع کمکی برای به‌روزرسانی فیلدهای خاص که توسط فرآیندهای سیستمی انجام می شوند
+
   static async updateLastLogin(userId) {
     await pool.query("UPDATE users SET last_login_at = NOW() WHERE id = $1", [
       userId,
@@ -223,7 +222,7 @@ class User {
   }
 
   static async findByResetPasswordToken(token) {
-    // پیدا کردن کاربر بر اساس توکن و چک کردن تاریخ انقضا
+   
     const result = await pool.query(
       "SELECT * FROM users WHERE reset_password_token = $1 AND reset_password_expires > NOW()",
       [token]
@@ -233,7 +232,7 @@ class User {
 
   static async resetPassword(userId, newPassword) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    // پس از ریست موفقیت آمیز، توکن و تاریخ انقضا را پاک کنید
+  
     await pool.query(
       "UPDATE users SET password = $1, reset_password_token = NULL, reset_password_expires = NULL WHERE id = $2",
       [hashedPassword, userId]
