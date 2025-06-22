@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const addressController = require("../controllers/addressController");
-const { authMiddleware } = require("../middlewares/authMiddleWare"); // مطمئن شوید مسیر این فایل درست است
+const { authMiddleware } = require("../middlewares/authMiddleware");
 
 // اعمال authMiddleware برای تمام روت‌های مدیریت آدرس کاربر
 // این تضمین می‌کند که req.user حاوی اطلاعات کاربر احراز هویت شده خواهد بود.
