@@ -1,4 +1,4 @@
-// controllers/ProductCategoryController.js
+
 const ProductCategory = require("../models/ProductCategory");
 
 exports.createProductCategory = async (req, res) => {
