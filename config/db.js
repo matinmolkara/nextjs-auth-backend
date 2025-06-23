@@ -7,6 +7,8 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   password: process.env.DB_PASS,
   port: process.env.DB_PORT || 5432,
+  
+  keepAlive: true, // جلوی قطع ناگهانی رو می‌گیره
 });
 
 pool
