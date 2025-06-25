@@ -13,10 +13,10 @@ const generateToken = (user) => {
 };
 
 
-
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
     if (!name || !email || !password) {
       return res.status(400).json({ message: "تمام فیلدها اجباری هستند" });
     }
@@ -36,25 +36,146 @@ exports.register = async (req, res) => {
     );
 
     const emailToken = jwt.sign(
-      { id: newUser.rows[0].id },
+      { id: newUser.rows[0].id, email: email },
       process.env.JWT_EMAIL_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "24h" }
     );
 
-    const url = `http://localhost:5000/api/auth/verify-email?token=${emailToken}`;
+    // ✅ URL تایید برای production
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${emailToken}`;
 
-    await sendEmail(
-      email,
-      "تایید ایمیل",
-      `<h3>برای فعال سازی حساب روی لینک زیر کلیک کن:</h3><a href="${url}">${url}</a>`
-    );
+    // ✅ HTML Template زیبا
+    const emailHTML = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Tahoma', Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .content { padding: 30px; }
+        .button { display: inline-block; background: #4CAF50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 خوش آمدید ${name}!</h1>
+          <p>به خانواده MyApp خوش اومدی</p>
+        </div>
+        <div class="content">
+          <h2>تایید حساب کاربری</h2>
+          <p>سلام ${name} عزیز،</p>
+          <p>برای فعال‌سازی حساب کاربری خود روی دکمه زیر کلیک کنید:</p>
+          
+          <div style="text-align: center;">
+            <a href="${verificationUrl}" class="button">✅ تایید حساب کاربری</a>
+          </div>
+          
+          <p>یا می‌تونید روی لینک زیر کلیک کنید:</p>
+          <p style="word-break: break-all;"><a href="${verificationUrl}">${verificationUrl}</a></p>
+          
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <strong>⚠️ توجه:</strong> این لینک تا 24 ساعت معتبر است.
+          </div>
+        </div>
+        <div class="footer">
+          <p>اگر شما این حساب را ایجاد نکرده‌اید، این ایمیل را نادیده بگیرید.</p>
+          <p>© 2025 MyApp - تمامی حقوق محفوظ است</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
 
-    res.status(201).json({
-      message: "ثبت‌نام موفق. لینک تایید به ایمیل ارسال شد.",
-    });
+    try {
+      await sendEmail(email, "🔐 تایید حساب کاربری - MyApp", emailHTML);
+
+      res.status(201).json({
+        message: "ثبت‌نام موفق. لینک تایید به ایمیل ارسال شد.",
+        success: true,
+      });
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError);
+
+      // ✅ حساب ساخته شد ولی ایمیل ارسال نشد
+      res.status(201).json({
+        message:
+          "ثبت‌نام موفق ولی خطا در ارسال ایمیل. لطفاً درخواست ارسال مجدد کنید.",
+        success: true,
+        emailError: true,
+        userEmail: email,
+      });
+    }
   } catch (error) {
-    console.error(error);
+    console.error("Registration error:", error);
     res.status(500).json({ message: "خطا در ثبت نام کاربر" });
+  }
+};
+
+// ✅ بهبود resend verification
+exports.resendVerificationEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const userResult = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: "کاربر یافت نشد." });
+    }
+
+    const user = userResult.rows[0];
+
+    if (user.is_verified) {
+      return res.status(400).json({ message: "ایمیل قبلاً تایید شده است." });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_EMAIL_SECRET,
+      { expiresIn: "24h" }
+    );
+
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+
+    const emailHTML = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Tahoma', Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .button { display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2>🔄 ارسال مجدد لینک تایید</h2>
+        <p>سلام ${user.name} عزیز،</p>
+        <p>درخواست ارسال مجدد لینک تایید شما دریافت شد.</p>
+        
+        <div style="text-align: center;">
+          <a href="${verificationUrl}" class="button">✅ تایید حساب کاربری</a>
+        </div>
+        
+        <p>این لینک تا 24 ساعت معتبر است.</p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    await sendEmail(email, "🔄 ارسال مجدد لینک تایید - MyApp", emailHTML);
+
+    res.json({ message: "لینک تایید مجدد ارسال شد." });
+  } catch (error) {
+    console.error("Resend email error:", error);
+    res.status(500).json({ message: "خطا در ارسال مجدد ایمیل." });
   }
 };
 
@@ -262,38 +383,64 @@ exports.verifyEmail = async (req, res) => {
 };
 
 exports.resendVerificationEmail = async (req, res) => {
- 
   const { email } = req.body;
+
   try {
     const userResult = await pool.query(
       "SELECT * FROM users WHERE email = $1",
       [email]
     );
+
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ message: "User not found." });
+      return res.status(404).json({ message: "کاربر یافت نشد." });
     }
 
     const user = userResult.rows[0];
 
     if (user.is_verified) {
-      return res.status(400).json({ message: "Email is already verified." });
+      return res.status(400).json({ message: "ایمیل قبلاً تایید شده است." });
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_EMAIL_SECRET, {
-      expiresIn: "1h",
-    });
-
-    const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
-
-    await sendEmail(
-      email,
-      "لینک تایید مجدد ایمیل",
-      `<p>برای تایید ایمیل روی لینک زیر کلیک کنید:</p><a href="${verificationLink}">${verificationLink}</a>`
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_EMAIL_SECRET,
+      { expiresIn: "24h" }
     );
 
-    res.json({ message: "Verification email sent." });
+    const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
+
+    const emailHTML = `
+    <!DOCTYPE html>
+    <html dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: 'Tahoma', Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .button { display: inline-block; background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2>🔄 ارسال مجدد لینک تایید</h2>
+        <p>سلام ${user.name} عزیز،</p>
+        <p>درخواست ارسال مجدد لینک تایید شما دریافت شد.</p>
+        
+        <div style="text-align: center;">
+          <a href="${verificationUrl}" class="button">✅ تایید حساب کاربری</a>
+        </div>
+        
+        <p>این لینک تا 24 ساعت معتبر است.</p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    await sendEmail(email, "🔄 ارسال مجدد لینک تایید - MyApp", emailHTML);
+
+    res.json({ message: "لینک تایید مجدد ارسال شد." });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Internal server error." });
+    console.error("Resend email error:", error);
+    res.status(500).json({ message: "خطا در ارسال مجدد ایمیل." });
   }
 };
