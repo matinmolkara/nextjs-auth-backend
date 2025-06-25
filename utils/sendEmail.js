@@ -3,12 +3,12 @@ const nodemailer = require("nodemailer");
 const sendEmail = async (to, subject, html) => {
   try{
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      service: "gmail",
       port: 587,
       secure: false,
       auth: {
         user: process.env.GMAIL_USER, // ایمیل فرستنده
-        pass: process.env.GMAIL_PASS, // رمز عبور ایمیل فرستنده
+        pass: process.env.GMAIL_APP_PASSWORD, // رمز عبور ایمیل فرستنده
       },
       tls: {
         rejectUnauthorized: false, // برای جلوگیری از خطای TLS
