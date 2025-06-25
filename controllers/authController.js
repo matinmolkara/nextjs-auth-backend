@@ -127,7 +127,12 @@ exports.login = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      path: "/", // ✅ اضافه کردن path
+    });
     res.json({ message: "خروج از حساب کاربری موفقیت‌آمیز بود" });
   } catch (error) {
     console.error(error);
