@@ -32,7 +32,7 @@ const app = express();
  // برای دسترسی به تصاویر آپلود شده
 app.use(
   cors({
-    origin: ["https://luxurykharid.vercel.app/", "http://localhost:3000"],
+    origin: ["https://luxurykharid.vercel.app", "http://localhost:3000"],
     credentials: true,
   })
 );
