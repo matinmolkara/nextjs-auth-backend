@@ -7,10 +7,7 @@ const ProductGeneralDescription = require("../models/ProductGeneralDescription")
 const AttributeKey = require("../models/AttributeKey");
 const ProductCategory = require("../models/ProductCategory");
 
-
 exports.getAllProducts = async (req, res) => {
-
-
   try {
     const {
       categoryId,
@@ -45,45 +42,6 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-
-
-// exports.getAllProducts = async (req, res) => {
-//   try {
-//     const {
-//       categoryId,
-//       brand,
-//       available,
-//       discount,
-//       search = "",
-//       page = 1,
-//       pageSize = 15,
-//     } = req.query;
-//     const skip = (parseInt(page) - 1) * parseInt(pageSize);
-//     const limit = parseInt(pageSize);
-
-//     const filterParams = {
-//       categoryId,
-//       brand,
-//       available: available === "true",
-//       discount: discount === "true",
-//       search,
-//       skip,
-//       limit,
-//     };
-//     const products = await Product.getByFilters(filterParams);
-//     const totalCount = await Product.countByFilters(filterParams);
-
-//     res.json({ products, totalCount });
-//   } catch (error) {
-//     console.error("Backend Error fetching filtered products:", error);
-//     res
-//       .status(500)
-//       .json({ message: "Failed to fetch products", error: error.message });
-//   }
-// };
-
-
-
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.getById(req.params.id);
@@ -95,8 +53,7 @@ exports.getProductById = async (req, res) => {
     const generalDescriptions = await Product.getGeneralDescriptions(
       req.params.id
     );
-    res.json({ ...product, colors,attributes, generalDescriptions });
-   
+    res.json({ ...product, colors, attributes, generalDescriptions });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -117,21 +74,24 @@ exports.createProduct = async (req, res) => {
       has_color,
       has_size,
       inventory,
+      image_urls, // حالا مستقیماً از فرانت‌اند دریافت می‌شود
     } = req.body;
+
     const color_ids = JSON.parse(req.body.color_ids || "[]");
     const attributes = JSON.parse(req.body.attributes || "[]");
     const descriptions = JSON.parse(req.body.descriptions || "[]");
     const sizes = JSON.parse(req.body.sizes || "[]");
-    const image_urls = req.files.map(
-      (file) => `http://localhost:5000/uploads/${file.filename}`
-    ); // دریافت URL تصاویر آپلود شده
+
+    // حالا دیگر نیازی به req.files نداریم
+    // image_urls مستقیماً از فرانت‌اند می‌آید
+
     const product = await Product.create({
       title,
       description,
       price,
       real_price,
       discount,
-      image_urls,
+      image_urls, // استفاده از URL های دریافتی از فرانت‌اند
       category_id,
       brand_id,
       special_offer,
@@ -140,18 +100,19 @@ exports.createProduct = async (req, res) => {
       has_size,
       inventory,
     });
+
     if (color_ids && color_ids.length > 0) {
       for (const color_id of color_ids) {
         await ProductColor.create({ product_id: product.id, color_id });
       }
     }
+
     if (sizes.length > 0) {
       for (const size_id of sizes) {
         await ProductSize.create({ product_id: product.id, size_id });
       }
     }
 
-    
     for (const attr of attributes) {
       let attribute_id;
 
@@ -169,7 +130,7 @@ exports.createProduct = async (req, res) => {
       });
     }
 
-    // توضیحات عمومی (مثلاً بخش معرفی محصول)
+    // توضیحات عمومی
     for (const { title, content } of descriptions) {
       await ProductGeneralDescription.create({
         product_id: product.id,
@@ -177,10 +138,12 @@ exports.createProduct = async (req, res) => {
         content,
       });
     }
+
     await ProductCategory.create({
       product_id: product.id,
       category_id: product.category_id,
     });
+
     res.status(201).json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -205,6 +168,7 @@ exports.updateProduct = async (req, res) => {
       has_color,
       has_size,
       inventory,
+      image_urls, // حالا مستقیماً از فرانت‌اند دریافت می‌شود
     } = req.body;
 
     const color_ids = Array.isArray(req.body.color_ids)
@@ -229,18 +193,9 @@ exports.updateProduct = async (req, res) => {
         ? JSON.parse(req.body.descriptions)
         : null;
 
-    const removedImageNames = req.body.removed_image_ids
-      ? JSON.parse(req.body.removed_image_ids)
-      : [];
-
-    const image_urls = [
-      ...(req.body.image_urls || existingProduct.image_urls || []).filter(
-        (url) => !removedImageNames.includes(url.split("/").pop())
-      ),
-      ...(req.files || []).map(
-        (file) => `http://localhost:5000/uploads/${file.filename}`
-      ),
-    ];
+    // حالا image_urls مستقیماً از فرانت‌اند می‌آید
+    // دیگر نیازی به req.files نداریم
+    const finalImageUrls = image_urls || existingProduct.image_urls || [];
 
     const updatedFields = {
       title: title ?? existingProduct.title,
@@ -248,7 +203,7 @@ exports.updateProduct = async (req, res) => {
       price: price ?? existingProduct.price,
       real_price: real_price ?? existingProduct.real_price,
       discount: discount ?? existingProduct.discount,
-      image_urls,
+      image_urls: finalImageUrls,
       category_id: category_id ?? existingProduct.category_id,
       brand_id: brand_id ?? existingProduct.brand_id,
       special_offer: special_offer ?? existingProduct.special_offer,
@@ -275,7 +230,6 @@ exports.updateProduct = async (req, res) => {
       }
     }
 
-    // ✅ ویژگی‌ها: بدون حذف کامل، فقط update یا insert کن
     if (Array.isArray(attributes)) {
       for (const attr of attributes) {
         let attribute_id = attr.attribute_id;
@@ -284,7 +238,6 @@ exports.updateProduct = async (req, res) => {
           attribute_id = key.id;
         }
 
-        // 🔁 upsert دستی
         const existing = await AttributeValue.findByProductAndAttribute(
           req.params.id,
           attribute_id
@@ -326,9 +279,6 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-
-
-
 exports.deleteProduct = async (req, res) => {
   try {
     await Product.delete(req.params.id);
@@ -340,9 +290,7 @@ exports.deleteProduct = async (req, res) => {
 
 exports.getProductColors = async (req, res) => {
   try {
-   
     const productId = Number(req.params.id);
-   
     const colors = await ProductColor.getProductColors(productId);
     res.json(colors);
   } catch (error) {
@@ -352,16 +300,13 @@ exports.getProductColors = async (req, res) => {
 
 exports.getProductSizes = async (req, res) => {
   try {
-
     const productId = Number(req.params.id);
-   
     const sizes = await ProductSize.getProductSizes(productId);
     res.json(sizes);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 exports.decreaseProductInventory = async (req, res) => {
   try {
@@ -388,7 +333,6 @@ exports.decreaseProductInventory = async (req, res) => {
   }
 };
 
-
 exports.increaseProductInventory = async (req, res) => {
   try {
     const productId = Number(req.params.id);
@@ -413,6 +357,7 @@ exports.increaseProductInventory = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 exports.getProductsByBrandId = async (req, res) => {
   try {
     const products = await Product.getByBrandId(req.params.brand_id);
